@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: bitnet-gateway
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: BITNET_MODEL
+        value: bitnet-b1.58-2b-cpu

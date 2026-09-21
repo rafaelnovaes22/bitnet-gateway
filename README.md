@@ -20,6 +20,14 @@ uvicorn app.main:app --port 8000
 
 Build por Dockerfile, health em `/health`. Troca futura: setar `BITNET_MODEL` e apontar GGUF real em `app/triage.py` e `app/embeddings.py` sem mudar contrato.
 
+## Verificacao
+
+```bash
+python -m pytest -q
+```
+
+Gate atual: 7 passed. Branch `feat/bitnet-gateway-mvp` aguarda revisao, sem merge.
+
 ## Economia
 
 Filtro local resolve cerca de 60% a 70% do volume (spam, suporte simples, outro). Spark entra so em venda, urgencia, dinheiro ou confianca abaixo de 0.65. Resultado: menos tokens caros, mesma qualidade no fechamento.
