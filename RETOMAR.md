@@ -24,9 +24,14 @@ https://does-consistent-hardly-respect.trycloudflare.com
 2. Alternativas gratuitas testadas: HF Spaces Docker e Gradio exigem PRO. Tunel Cloudflare adotado como palco momentaneo.
 3. Este arquivo RETOMAR.md ainda nao foi commitado.
 
-## Voltar
+## Sem custo (2026-09-21)
+
+1. Tunel persiste no boot: `manter-no-ar.ps1` relanca uvicorn na 8123 e cloudflared, atalho `bitnet-gateway.cmd` na pasta Startup. URL muda a cada restart (limite do quick tunnel gratis).
+2. URL fixa gratis: `render.yaml` (plano free, health `/health`) pronto na branch. Falta conta Render gratis do Rafael, Blueprint do PR 1, pinger cron-job.org no `/health` contra o sleep do plano free.
 
 Revalidado em 2026-09-21: pytest 7 passed, `/health` local e tunel ok (uptime 1056s), branch `feat/bitnet-gateway-mvp` com so `RETOMAR.md` pendente.
+
+## Voltar
 ```powershell
 Set-Location "C:\Users\Rafael\Projetos\bitnet-gateway"
 python -m pytest -q
