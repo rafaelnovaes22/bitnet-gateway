@@ -30,6 +30,10 @@ Render Live: https://bitnet-gateway.onrender.com (`/health` ok, `/api/decide` ok
 Hermes no Railway com `BITNET_GATEWAY_URL` apontando para essa URL (variavel setada, verificada).
 Falta: pinger cron-job.org no `/health` contra o sleep do plano free. Filtro ativa no Hermes quando PR do prefilter mergear e Railway redeployar.
 
+## Pausa 2026-09-21 (retomar 2026-09-22)
+
+Tudo commitado e pushed, nada pendente de commit. Amanha: mergear PR 1 do gateway (opcional), mergear PR 6 do Hermes para ativar o filtro, conferir cron-job.org verde e `/health` no Render.
+
 1. Tunel persiste no boot: `manter-no-ar.ps1` relanca uvicorn na 8123 e cloudflared, atalho `bitnet-gateway.cmd` na pasta Startup. URL muda a cada restart (limite do quick tunnel gratis).
 2. URL fixa gratis: `render.yaml` (plano free, health `/health`) pronto na branch. Falta conta Render gratis do Rafael, Blueprint do PR 1, pinger cron-job.org no `/health` contra o sleep do plano free.
 
