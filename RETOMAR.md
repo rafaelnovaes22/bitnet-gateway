@@ -24,7 +24,11 @@ https://does-consistent-hardly-respect.trycloudflare.com
 2. Alternativas gratuitas testadas: HF Spaces Docker e Gradio exigem PRO. Tunel Cloudflare adotado como palco momentaneo.
 3. Este arquivo RETOMAR.md ainda nao foi commitado.
 
-## Sem custo (2026-09-21)
+## Producao gratis (2026-09-21)
+
+Render Live: https://bitnet-gateway.onrender.com (`/health` ok, `/api/decide` ok, validados em 2026-09-21).
+Hermes no Railway com `BITNET_GATEWAY_URL` apontando para essa URL (variavel setada, verificada).
+Falta: pinger cron-job.org no `/health` contra o sleep do plano free. Filtro ativa no Hermes quando PR do prefilter mergear e Railway redeployar.
 
 1. Tunel persiste no boot: `manter-no-ar.ps1` relanca uvicorn na 8123 e cloudflared, atalho `bitnet-gateway.cmd` na pasta Startup. URL muda a cada restart (limite do quick tunnel gratis).
 2. URL fixa gratis: `render.yaml` (plano free, health `/health`) pronto na branch. Falta conta Render gratis do Rafael, Blueprint do PR 1, pinger cron-job.org no `/health` contra o sleep do plano free.
