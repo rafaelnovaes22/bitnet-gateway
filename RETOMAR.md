@@ -48,3 +48,10 @@ Start-Process python -ArgumentList "-m","uvicorn","app.main:app","--port","8123"
 Start-Process C:\Users\Rafael\AppData\Local\Temp\opencode\cloudflared.exe -ArgumentList "tunnel","--url","http://127.0.0.1:8123","--no-autoupdate" -RedirectStandardOutput $env:TEMP\opencode\tunel.out.log -RedirectStandardError $env:TEMP\opencode\tunel.err.log -WindowStyle Hidden
 ```
 Pegar a nova URL em `tunel.err.log` (padrao `https://...trycloudflare.com`) e validar `/health`.
+
+## Noite 2026-09-21: shim Spark local (branch feat/bitnet-gateway-mvp, sem commit)
+- `app/spark.py` novo + `/v1/chat/completions` roteia `spark-*` ao cerebro
+  (`opencode run`, cota gratis) e o resto ao Bit. Hermes local usa os dois
+  via provider custom em 127.0.0.1:8123. Gate: 16 passed.
+- Detalhes e comandos de retomada em
+  `Hermes-Agent/RETOMAR-spark-bit-local.md`. Bot no Telegram ligado no PC.

@@ -2,16 +2,20 @@
 
 from __future__ import annotations
 
+import json
 import os
 import time
+from collections.abc import Iterable
 
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from .cerebro import montar_resposta
 from .embeddings import vetorizar
 from .log_json import configurar
+from .spark import fluxo as fluxo_spark
+from .spark import responder as responder_spark
 from .triage import classificar
 
 INICIO = time.time()
@@ -27,6 +31,68 @@ class EntradaTexto(BaseModel):
 
 class EntradaVetores(BaseModel):
     textos: list[str] = Field(min_length=1, max_length=32)
+
+
+class MensagemChat(BaseModel):
+    role: str = "user"
+    content: str = ""
+
+
+class EntradaChat(BaseModel):
+    model: str = "bitnet-b1.58-2b-cpu"
+    messages: list[MensagemChat] = Field(min_length=1, max_length=64)
+    stream: bool = False
+
+
+def _envelope(modelo: str, conteudo: str) -> dict[str, object]:
+    agora = int(time.time())
+    return {
+        "id": f"bitnet-{agora}",
+        "object": "chat.completion",
+        "created": agora,
+        "model": modelo,
+        "choices": [
+            {
+                "index": 0,
+                "message": {"role": "assistant", "content": conteudo},
+                "finish_reason": "stop",
+            }
+        ],
+        "usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": len(conteudo) // 4,
+            "total_tokens": len(conteudo) // 4,
+        },
+    }
+
+
+def _sse(modelo: str, deltas: Iterable[str]):
+    agora = int(time.time())
+    for delta in deltas:
+        yield "data: " + json.dumps(
+            {
+                "id": f"bitnet-{agora}",
+                "object": "chat.completion.chunk",
+                "created": agora,
+                "model": modelo,
+                "choices": [{"index": 0, "delta": {"content": delta}, "finish_reason": None}],
+            }
+        ) + "\n\n"
+    yield "data: [DONE]\n\n"
+
+
+def _resposta_bit(modelo: str, mensagens: list[MensagemChat]) -> str:
+    texto = next(
+        (m.content for m in reversed(mensagens) if m.role == "user" and m.content.strip()),
+        "",
+    )
+    if not texto:
+        raise ValueError("mensagem de usuario vazia")
+    categoria, _confianca = classificar(texto[:2000])
+    return (
+        f"[bitnet-cpu:{categoria}] Sou o fallback leve, sem custo. "
+        "Mande de forma curta ou aguarde o cerebro."
+    )
 
 
 PAGINA = """<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
@@ -95,3 +161,29 @@ def decidir(entrada: EntradaTexto) -> JSONResponse:
     resposta = montar_resposta(entrada.texto, categoria, confianca)
     LOG.info(f"decide {resposta['cerebro']} {resposta['categoria']}")
     return JSONResponse(resposta)
+
+
+@app.post("/v1/chat/completions")
+def chat_completions(entrada: EntradaChat):
+    """Porta unica do Hermes: modelo spark vai ao cerebro, resto ao Bit.
+
+    PORQUE rotear pelo nome: um so servico local atende primario e
+    fallback do Hermes, sem rede e sem custo.
+    """
+    try:
+        if entrada.model.lower().startswith("spark"):
+            ditados = [m.model_dump() for m in entrada.messages]
+            if entrada.stream:
+                return StreamingResponse(
+                    _sse(entrada.model, fluxo_spark(ditados)), media_type="text/event-stream"
+                )
+            return JSONResponse(_envelope(entrada.model, responder_spark(ditados)))
+        conteudo = _resposta_bit(entrada.model, entrada.messages)
+        if entrada.stream:
+            return StreamingResponse(_sse(entrada.model, [conteudo]), media_type="text/event-stream")
+        return JSONResponse(_envelope(entrada.model, conteudo))
+    except ValueError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
+    except (RuntimeError, TimeoutError) as exc:
+        LOG.info(f"chat cerebro falhou: {exc}")
+        return JSONResponse({"error": str(exc)}, status_code=502)

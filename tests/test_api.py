@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from unittest.mock import patch
+
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -33,3 +35,43 @@ def test_embed_dimensao() -> None:
     corpo = resposta.json()
     assert corpo["dim"] == 64
     assert len(corpo["vetores"]) == 2
+
+
+def test_chat_completions_compativel() -> None:
+    resposta = cliente.post(
+        "/v1/chat/completions",
+        json={"model": "bitnet-b1.58-2b-cpu", "messages": [{"role": "user", "content": "oi"}]},
+    )
+    corpo = resposta.json()
+    assert resposta.status_code == 200
+    assert corpo["object"] == "chat.completion"
+    assert corpo["choices"][0]["message"]["role"] == "assistant"
+    assert "bitnet-cpu" in corpo["choices"][0]["message"]["content"]
+
+
+def test_chat_sem_usuario_400() -> None:
+    resposta = cliente.post(
+        "/v1/chat/completions",
+        json={"model": "bitnet-b1.58-2b-cpu", "messages": [{"role": "system", "content": "x"}]},
+    )
+    assert resposta.status_code == 400
+
+
+def test_chat_spark_usa_cerebro() -> None:
+    with patch("app.main.responder_spark", return_value="ok do spark") as mock:
+        resposta = cliente.post(
+            "/v1/chat/completions",
+            json={"model": "spark-local", "messages": [{"role": "user", "content": "oi"}]},
+        )
+    assert resposta.status_code == 200
+    assert resposta.json()["choices"][0]["message"]["content"] == "ok do spark"
+    mock.assert_called_once()
+
+
+def test_chat_spark_falha_502() -> None:
+    with patch("app.main.responder_spark", side_effect=RuntimeError("cota esgotada")):
+        resposta = cliente.post(
+            "/v1/chat/completions",
+            json={"model": "spark-local", "messages": [{"role": "user", "content": "oi"}]},
+        )
+    assert resposta.status_code == 502
